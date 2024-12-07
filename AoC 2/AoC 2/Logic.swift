@@ -29,6 +29,14 @@ extension Array<String> {
 
 extension Array<Int> {
 
+    var removingEachEntryOnce: [[Int]] {
+        self.indices.map { index in
+            var copy = self
+            copy.remove(at: index)
+            return copy
+        }
+    }
+
     var diffsAreLessThanThree: Bool {
         for x in windows(ofCount: 2) {
             guard let lhs = x.first, let rhs = x.last else { return false }

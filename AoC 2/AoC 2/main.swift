@@ -7,9 +7,24 @@
 
 import Foundation
 
-let result = challenge
+let tests = challenge
     .lineByLine
     .asInts
-    .countSafe
 
-print("\(result) lines are safe")
+var safeCount = 0
+
+for test in tests {
+    if test.isSafe {
+        safeCount += 1
+
+    } else {
+        linecheck: for check in test.removingEachEntryOnce {
+            if check.isSafe {
+                safeCount += 1
+                break linecheck
+            }
+        }
+    }
+}
+
+print("\(safeCount) lines are safe")
