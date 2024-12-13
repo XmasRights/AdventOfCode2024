@@ -19,6 +19,9 @@ extension String {
 struct MapSize {
     let width: Int
     let height: Int
+}
+
+extension MapSize {
 
     init(map: String) {
         let lines = map.lineByLine
@@ -28,6 +31,7 @@ struct MapSize {
 }
 
 struct Coordinate: Hashable {
+
     let row: Int
     let col: Int
 
@@ -38,6 +42,7 @@ struct Coordinate: Hashable {
 }
 
 extension Coordinate: CustomStringConvertible {
+
     var description: String {
         "(\(row),\(col))"
     }
@@ -53,13 +58,13 @@ extension Character {
 
 extension String {
 
-    var obstaclesAndGuards: (guard: Coordinate, obstacles: [Coordinate]) {
+    var obstaclesAndGuards: (guard: Coordinate, obstacles: Set<Coordinate>) {
         var g: Coordinate?
-        var obstacles = [Coordinate]()
+        var obstacles = Set<Coordinate>()
 
         for (x, row) in self.lineByLine.enumerated() {
             for (y, point) in row.enumerated() {
-                if point.isObstacle { obstacles.append(.init(row: x, col: y)) }
+                if point.isObstacle { obstacles.insert(.init(row: x, col: y)) }
                 else if point.isGuard { g = .init(row: x, col: y) }
             }
         }
@@ -71,7 +76,7 @@ extension String {
 
 // MARK: Map Traversal
 
-enum Direction {
+enum Direction: Hashable {
     case up, down, left, right
 
     var turnRight: Direction {
@@ -143,3 +148,96 @@ struct MapTraverser {
     }
 }
 
+// MARK: Part 2
+
+struct CoordinateAndDirection: Hashable {
+    let coordinate: Coordinate
+    let direction: Direction
+
+    var next: CoordinateAndDirection {
+        .init(
+            coordinate: direction.position(after: coordinate),
+            direction: direction
+        )
+    }
+
+    var turnRight: CoordinateAndDirection {
+        .init(
+            coordinate: coordinate,
+            direction: direction.turnRight
+        )
+    }
+}
+
+struct LoopFinder {
+
+    let obstacles: Set<Coordinate>
+    let size: MapSize
+
+    func isLoop(start: Coordinate) -> Bool {
+        let _start = CoordinateAndDirection(coordinate: start, direction: .up)
+        var traversed = Set<CoordinateAndDirection>()
+        return isLoop(start: _start, traversed: &traversed)
+    }
+    
+    func isLoop(
+        start: CoordinateAndDirection,
+        traversed: inout Set<CoordinateAndDirection>
+    ) -> Bool {
+        guard !traversed.contains(start) else { return true }
+
+        let next = start.next
+
+        if next.coordinate.outOfBounds(mapSize: size) {
+            return false
+        }
+
+        if obstacles.contains(next.coordinate) {
+            return self.isLoop(
+                start: start.turnRight,
+                traversed: &traversed
+            )
+        }
+
+        traversed.insert(start)
+        return isLoop(start: next, traversed: &traversed)
+    }
+}
+
+struct CoordinateSequence: Sequence, IteratorProtocol {
+
+    let size: MapSize
+
+    var currentPosition: Coordinate? = Coordinate(row: 0, col: 0)
+
+    mutating func next() -> Coordinate? {
+        defer {
+            if let currentPosition {
+                self.currentPosition = position(after: currentPosition)
+            }
+        }
+        return currentPosition
+    }
+
+    func position(after x: Coordinate) -> Coordinate? {
+        if let nextCol = col(after: x) {
+            return Coordinate(row: x.row, col: nextCol)
+        }
+
+        if let nextRow = row(after: x) {
+            return Coordinate(row: nextRow, col: 0)
+        }
+
+        return nil
+    }
+
+    func row(after x: Coordinate) -> Int? {
+        guard x.row + 1 < size.height else { return nil }
+        return x.row + 1
+    }
+
+    func col(after x: Coordinate) -> Int? {
+        guard x.col + 1 < size.width else { return nil }
+        return x.col + 1
+    }
+}
