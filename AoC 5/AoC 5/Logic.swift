@@ -12,7 +12,8 @@ extension String {
     }
 
     var asIntArray: [Int] {
-        self.components(separatedBy: ",")
+        self.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: ",")
             .compactMap(Int.init)
     }
 }
@@ -72,6 +73,23 @@ extension Array<Int> {
             }
         }
         return true
+    }
+
+    func corrected(rules: OrderingRules) -> Self {
+        var output = [Int]()
+        output.reserveCapacity(self.count)
+
+        for page in self {
+            let preceding = rules.precedingPages(for: page)
+            let insertAt = output.firstIndex(where: { preceding.contains($0) })
+
+            if let insertAt {
+                output.insert(page, at: insertAt)
+            } else {
+                output.append(page)
+            }
+        }
+        return output
     }
 }
 
